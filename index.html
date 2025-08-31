@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProStudy Timer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6c5ce7;
+            --secondary: #a29bfe;
+            --accent: #fd79a8;
+            --dark: #121212;
+            --darker: #0a0a0a;
+            --light: #f5f6fa;
+            --gray: #2d3436;
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --danger: #d63031;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--darker), var(--dark));
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 30px 0;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            font-size: 2.8rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            color: var(--secondary);
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+        
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: rgba(35, 35, 50, 0.4);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .timer-container {
+            text-align: center;
+        }
+        
+        .timer-display {
+            font-size: 4.5rem;
+            font-weight: 700;
+            margin: 25px 0;
+            color: var(--light);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-start {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-pause {
+            background: var(--warning);
+            color: var(--dark);
+        }
+        
+        .btn-reset {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-action {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+            transform: scale(1.05);
+        }
+        
+        .preset-times {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .preset-btn {
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .preset-btn:hover {
+            background: var(--primary);
+        }
+        
+        .custom-time {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .time-input {
+            padding: 10px 15px;
+            border: 2px solid var(--secondary);
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            font-size: 1rem;
+            width: 80px;
+            text-align: center;
+        }
+        
+        .subjects-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+        
+        .subjects-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .subjects-container::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+        
+        .subject-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .subject-name {
+            font-weight: 600;
+        }
+        
+        .subject-time {
+            color: var(--secondary);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .subject-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--light);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .icon-btn:hover {
+            color: var(--accent);
+        }
+        
+        .add-subject {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .subject-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid var(--secondary);
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            font-size: 1rem;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+        
+        .stat-title {
+            color: var(--secondary);
+            font-size: 0.9rem;
+        }
+        
+        .mode-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .mode-btn {
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-btn.active {
+            background: var(--primary);
+        }
+        
+        .task-item {
+            padding: 15px;
+            margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .task-text {
+            flex: 1;
+            margin-right: 15px;
+        }
+        
+        .task-completed {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            color: var(--secondary);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .footer-link {
+            color: var(--accent);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .highlight {
+            color: var(--accent);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: var(--dark);
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--light);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        
+        .edit-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            color: var(--secondary);
+        }
+        
+        .form-input {
+            padding: 12px 15px;
+            border: 2px solid var(--secondary);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+            font-size: 1rem;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h1>ProStudy Timer</h1>
+            <p class="subtitle">A professional study assistant with stopwatch, subject tracking, and custom time settings</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="left-column">
+                <div class="card timer-container">
+                    <h2 class="card-title">
+                        <i class="fas fa-stopwatch"></i>
+                        Study Timer
+                    </h2>
+                    <div class="timer-display" id="timer">25:00</div>
+                    
+                    <div class="mode-controls">
+                        <button class="mode-btn active" id="pomodoroBtn">
+                            <i class="fas fa-clock"></i> Pomodoro
+                        </button>
+                        <button class="mode-btn" id="stopwatchBtn">
+                            <i class="fas fa-hourglass-half"></i> Stopwatch
+                        </button>
+                        <button class="mode-btn" id="customBtn">
+                            <i class="fas fa-cog"></i> Custom
+                        </button>
+                    </div>
+                    
+                    <div class="timer-controls">
+                        <button class="btn btn-start" id="startBtn">
+                            <i class="fas fa-play"></i> Start
+                        </button>
+                        <button class="btn btn-pause" id="pauseBtn">
+                            <i class="fas fa-pause"></i> Pause
+                        </button>
+                        <button class="btn btn-reset" id="resetBtn">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                    
+                    <div class="preset-times">
+                        <button class="preset-btn" data-time="300">5 Min</button>
+                        <button class="preset-btn" data-time="900">15 Min</button>
+                        <button class="preset-btn" data-time="1500">25 Min</button>
+                        <button class="preset-btn" data-time="1800">30 Min</button>
+                        <button class="preset-btn" data-time="2700">45 Min</button>
+                        <button class="preset-btn" data-time="3600">60 Min</button>
+                    </div>
+                    
+                    <div class="custom-time">
+                        <input type="number" id="minutesInput" class="time-input" placeholder="Min" min="0" max="99">
+                        <span>:</span>
+                        <input type="number" id="secondsInput" class="time-input" placeholder="Sec" min="0" max="59">
+                        <button class="btn btn-action" id="setTimeBtn">
+                            <i class="fas fa-check"></i> Set
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        Study Statistics
+                    </h2>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-title">Today's Study Time</div>
+                            <div class="stat-value" id="todayTime">00:00:00</div>
+                            <div class="stat-desc">Hours:Minutes</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Sessions Completed</div>
+                            <div class="stat-value" id="sessionsCount">0</div>
+                            <div class="stat-desc">Total Sessions</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Focus Rate</div>
+                            <div class="stat-value" id="focusRate">0%</div>
+                            <div class="stat-desc">Efficiency Score</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-title">Subjects Covered</div>
+                            <div class="stat-value" id="subjectsCount">0</div>
+                            <div class="stat-desc">Different Subjects</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="right-column">
+                <div class="card">
+                    <h2 class="card-title">
+                        <i class="fas fa-book"></i>
+                        Study Subjects
+                    </h2>
+                    <div class="subjects-container" id="subjectsList">
+                        <!-- Subjects will be added here dynamically -->
+                    </div>
+                    
+                    <div class="add-subject">
+                        <input type="text" id="subjectInput" class="subject-input" placeholder="Add a new subject...">
+                        <button class="btn btn-action" id="addSubjectBtn">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="card-title">
+                        <i class="fas fa-tasks"></i>
+                        Study Tasks
+                    </h2>
+                    <div id="tasksList">
+                        <!-- Tasks will be added here dynamically -->
+                    </div>
+                    
+                    <div class="add-subject">
+                        <input type="text" id="taskInput" class="subject-input" placeholder="Add a new task...">
+                        <button class="btn btn-action" id="addTaskBtn">
+                            <i class="fas fa-plus"></i> Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 <span class="highlight">ProStudy Timer</span> - Designed to enhance your study productivity</p>
+            <div class="footer-links">
+                <a href="https://github.com/diaaqassem" class="footer-link" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+                <a href="https://www.linkedin.com/in/diaaqassem" class="footer-link" target="_blank">
+                    <i class="fab fa-linkedin"></i> LinkedIn
+                </a>
+            </div>
+            <p>Created by <span class="highlight">Diaa Qassem</span></p>
+        </footer>
+    </div>
+
+    <!-- Edit Subject Modal -->
+    <div class="modal" id="editSubjectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Subject</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <div class="edit-form">
+                <div class="form-group">
+                    <label class="form-label" for="editSubjectName">Subject Name</label>
+                    <input type="text" id="editSubjectName" class="form-input" placeholder="Subject name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="editSubjectTime">Study Time (minutes)</label>
+                    <input type="number" id="editSubjectTime" class="form-input" placeholder="Study time">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-reset" id="cancelEdit">Cancel</button>
+                    <button class="btn btn-action" id="saveSubject">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const timerDisplay = document.getElementById('timer');
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const minutesInput = document.getElementById('minutesInput');
+        const secondsInput = document.getElementById('secondsInput');
+        const setTimeBtn = document.getElementById('setTimeBtn');
+        const pomodoroBtn = document.getElementById('pomodoroBtn');
+        const stopwatchBtn = document.getElementById('stopwatchBtn');
+        const customBtn = document.getElementById('customBtn');
+        const subjectInput = document.getElementById('subjectInput');
+        const addSubjectBtn = document.getElementById('addSubjectBtn');
+        const subjectsList = document.getElementById('subjectsList');
+        const taskInput = document.getElementById('taskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const tasksList = document.getElementById('tasksList');
+        const presetButtons = document.querySelectorAll('.preset-btn');
+        const todayTimeEl = document.getElementById('todayTime');
+        const sessionsCountEl = document.getElementById('sessionsCount');
+        const focusRateEl = document.getElementById('focusRate');
+        const subjectsCountEl = document.getElementById('subjectsCount');
+        const editSubjectModal = document.getElementById('editSubjectModal');
+        const editSubjectName = document.getElementById('editSubjectName');
+        const editSubjectTime = document.getElementById('editSubjectTime');
+        const closeModal = document.getElementById('closeModal');
+        const cancelEdit = document.getElementById('cancelEdit');
+        const saveSubject = document.getElementById('saveSubject');
+        
+        // Application state
+        let state = {
+            timer: {
+                timeLeft: 25 * 60,
+                isRunning: false,
+                mode: 'pomodoro',
+                stopwatchStartTime: 0,
+                stopwatchElapsed: 0,
+                interval: null
+            },
+            subjects: [],
+            tasks: [],
+            statistics: {
+                totalStudyTime: 0,
+                sessionsCompleted: 0,
+                focusRate: 0,
+                todayStudyTime: 0,
+                lastUpdated: new Date().toDateString()
+            },
+            editingSubjectId: null
+        };
+        
+        // Initialize the application
+        function initApp() {
+            loadFromLocalStorage();
+            checkDateReset();
+            setupEventListeners();
+            updateUI();
+        }
+        
+        // Check if we need to reset daily statistics
+        function checkDateReset() {
+            const today = new Date().toDateString();
+            if (state.statistics.lastUpdated !== today) {
+                // Reset daily statistics
+                state.statistics.todayStudyTime = 0;
+                state.statistics.lastUpdated = today;
+                saveToLocalStorage();
+            }
+        }
+        
+        // Load data from localStorage
+        function loadFromLocalStorage() {
+            const savedState = localStorage.getItem('proStudyTimerState');
+            if (savedState) {
+                const parsedState = JSON.parse(savedState);
+                
+                // Merge with current state to ensure all properties exist
+                state = {
+                    ...state,
+                    ...parsedState,
+                    statistics: {
+                        ...state.statistics,
+                        ...(parsedState.statistics || {})
+                    }
+                };
+            }
+        }
+        
+        // Save data to localStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('proStudyTimerState', JSON.stringify(state));
+        }
+        
+        // Set up event listeners
+        function setupEventListeners() {
+            startBtn.addEventListener('click', startTimer);
+            pauseBtn.addEventListener('click', pauseTimer);
+            resetBtn.addEventListener('click', resetTimer);
+            setTimeBtn.addEventListener('click', setCustomTime);
+            
+            pomodoroBtn.addEventListener('click', () => switchMode('pomodoro'));
+            stopwatchBtn.addEventListener('click', () => switchMode('stopwatch'));
+            customBtn.addEventListener('click', () => switchMode('custom'));
+            
+            addSubjectBtn.addEventListener('click', addSubject);
+            subjectInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addSubject();
+            });
+            
+            addTaskBtn.addEventListener('click', addTask);
+            taskInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addTask();
+            });
+            
+            presetButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const time = parseInt(this.getAttribute('data-time'));
+                    setPresetTime(time);
+                });
+            });
+            
+            closeModal.addEventListener('click', hideEditModal);
+            cancelEdit.addEventListener('click', hideEditModal);
+            saveSubject.addEventListener('click', saveSubjectChanges);
+        }
+        
+        // Update the UI based on current state
+        function updateUI() {
+            updateTimerDisplay();
+            updateSubjectsList();
+            updateTasksList();
+            updateStatistics();
+        }
+        
+        // Update timer display
+        function updateTimerDisplay() {
+            if (state.timer.mode === 'stopwatch') {
+                const totalSeconds = Math.floor(state.timer.stopwatchElapsed / 1000);
+                const hours = Math.floor(totalSeconds / 3600);
+                const minutes = Math.floor((totalSeconds % 3600) / 60);
+                const seconds = totalSeconds % 60;
+                
+                if (hours > 0) {
+                    timerDisplay.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            } else {
+                const minutes = Math.floor(state.timer.timeLeft / 60);
+                const seconds = state.timer.timeLeft % 60;
+                timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+            
+            // Update document title
+            document.title = `${timerDisplay.textContent} - ProStudy Timer`;
+        }
+        
+        // Update subjects list
+        function updateSubjectsList() {
+            subjectsList.innerHTML = '';
+            
+            state.subjects.forEach((subject, index) => {
+                const subjectItem = document.createElement('div');
+                subjectItem.className = 'subject-item';
+                
+                // Convert seconds to HH:MM:SS format
+                const hours = Math.floor(subject.time / 3600);
+                const minutes = Math.floor((subject.time % 3600) / 60);
+                const seconds = subject.time % 60;
+                
+                let timeString = '';
+                if (hours > 0) {
+                    timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                } else {
+                    timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                
+                subjectItem.innerHTML = `
+                    <div class="subject-name">${subject.name}</div>
+                    <div class="subject-time">${timeString}</div>
+                    <div class="subject-actions">
+                        <button class="icon-btn edit-subject" data-id="${index}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="icon-btn delete-subject" data-id="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                subjectsList.appendChild(subjectItem);
+            });
+            
+            // Add event listeners to edit and delete buttons
+            document.querySelectorAll('.edit-subject').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    showEditModal(id);
+                });
+            });
+            
+            document.querySelectorAll('.delete-subject').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    deleteSubject(id);
+                });
+            });
+            
+            // Update subjects count
+            subjectsCountEl.textContent = state.subjects.length;
+        }
+        
+        // Update tasks list
+        function updateTasksList() {
+            tasksList.innerHTML = '';
+            
+            state.tasks.forEach((task, index) => {
+                const taskItem = document.createElement('div');
+                taskItem.className = `task-item ${task.completed ? 'task-completed' : ''}`;
+                
+                taskItem.innerHTML = `
+                    <div class="task-text">${task.text}</div>
+                    <div class="subject-actions">
+                        <button class="icon-btn toggle-task" data-id="${index}">
+                            <i class="fas ${task.completed ? 'fa-undo' : 'fa-check'}"></i>
+                        </button>
+                        <button class="icon-btn delete-task" data-id="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                tasksList.appendChild(taskItem);
+            });
+            
+            // Add event listeners to task buttons
+            document.querySelectorAll('.toggle-task').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    toggleTaskCompletion(id);
+                });
+            });
+            
+            document.querySelectorAll('.delete-task').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.getAttribute('data-id');
+                    deleteTask(id);
+                });
+            });
+        }
+        
+        // Update statistics
+        function updateStatistics() {
+            // Update today's study time
+            const hours = Math.floor(state.statistics.todayStudyTime / 3600);
+            const minutes = Math.floor((state.statistics.todayStudyTime % 3600) / 60);
+            const seconds = state.statistics.todayStudyTime % 60;
+            
+            todayTimeEl.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            
+            // Update other statistics
+            sessionsCountEl.textContent = state.statistics.sessionsCompleted;
+            
+            // Calculate focus rate based on completed tasks vs total tasks
+            const totalTasks = state.tasks.length;
+            const completedTasks = state.tasks.filter(task => task.completed).length;
+            state.statistics.focusRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+            
+            focusRateEl.textContent = `${state.statistics.focusRate}%`;
+            subjectsCountEl.textContent = state.subjects.length;
+            
+            saveToLocalStorage();
+        }
+        
+        // Start timer
+        function startTimer() {
+            if (!state.timer.isRunning) {
+                state.timer.isRunning = true;
+                
+                if (state.timer.mode === 'stopwatch') {
+                    state.timer.stopwatchStartTime = Date.now() - state.timer.stopwatchElapsed;
+                    
+                    state.timer.interval = setInterval(() => {
+                        state.timer.stopwatchElapsed = Date.now() - state.timer.stopwatchStartTime;
+                        updateTimerDisplay();
+                        saveToLocalStorage();
+                    }, 100);
+                } else {
+                    state.timer.interval = setInterval(() => {
+                        state.timer.timeLeft--;
+                        updateTimerDisplay();
+                        
+                        if (state.timer.timeLeft === 0) {
+                            clearInterval(state.timer.interval);
+                            state.timer.isRunning = false;
+                            state.statistics.sessionsCompleted++;
+                            
+                            // Play sound notification
+                            playNotification();
+                            
+                            // If it was a study session, add to today's study time
+                            if (state.timer.mode === 'pomodoro' || state.timer.mode === 'custom') {
+                                const sessionTime = state.timer.mode === 'pomodoro' ? 25 * 60 : 
+                                                  (state.timer.originalTime || 25 * 60);
+                                state.statistics.todayStudyTime += sessionTime;
+                                
+                                // Update focus rate (simplified calculation)
+                                const totalStudyTime = state.statistics.todayStudyTime;
+                                const totalSessions = state.statistics.sessionsCompleted;
+                                state.statistics.focusRate = Math.min(100, Math.floor((totalStudyTime / (totalSessions * 25 * 60)) * 100));
+                            }
+                            
+                            updateStatistics();
+                            saveToLocalStorage();
+                        }
+                        
+                        saveToLocalStorage();
+                    }, 1000);
+                }
+                
+                saveToLocalStorage();
+            }
+        }
+        
+        // Pause timer
+        function pauseTimer() {
+            if (state.timer.isRunning) {
+                clearInterval(state.timer.interval);
+                state.timer.isRunning = false;
+                saveToLocalStorage();
+            }
+        }
+        
+        // Reset timer
+        function resetTimer() {
+            clearInterval(state.timer.interval);
+            state.timer.isRunning = false;
+            
+            if (state.timer.mode === 'pomodoro') {
+                state.timer.timeLeft = 25 * 60;
+            } else if (state.timer.mode === 'stopwatch') {
+                state.timer.stopwatchElapsed = 0;
+            }
+            // For custom mode, keep the current timeLeft value
+            
+            updateTimerDisplay();
+            saveToLocalStorage();
+        }
+        
+        // Set custom time
+        function setCustomTime() {
+            const minutes = parseInt(minutesInput.value) || 0;
+            const seconds = parseInt(secondsInput.value) || 0;
+            
+            state.timer.timeLeft = minutes * 60 + seconds;
+            state.timer.originalTime = state.timer.timeLeft; // Store for statistics
+            updateTimerDisplay();
+            saveToLocalStorage();
+        }
+        
+        // Play notification sound
+        function playNotification() {
+            // In a real app, you would play a sound here
+            console.log("Timer completed! Play sound.");
+            alert("Timer completed! Time for a break.");
+        }
+        
+        // Switch mode
+        function switchMode(newMode) {
+            // Reset current timer
+            clearInterval(state.timer.interval);
+            state.timer.isRunning = false;
+            
+            // Update mode
+            state.timer.mode = newMode;
+            
+            // Update active button
+            pomodoroBtn.classList.remove('active');
+            stopwatchBtn.classList.remove('active');
+            customBtn.classList.remove('active');
+            
+            if (newMode === 'pomodoro') {
+                pomodoroBtn.classList.add('active');
+                state.timer.timeLeft = 25 * 60;
+                state.timer.originalTime = 25 * 60;
+            } else if (newMode === 'stopwatch') {
+                stopwatchBtn.classList.add('active');
+                state.timer.stopwatchElapsed = 0;
+            } else if (newMode === 'custom') {
+                customBtn.classList.add('active');
+                // Keep the current timeLeft value, but set a default if not set
+                if (state.timer.timeLeft <= 0) {
+                    state.timer.timeLeft = 25 * 60;
+                    state.timer.originalTime = 25 * 60;
+                }
+            }
+            
+            updateTimerDisplay();
+            saveToLocalStorage();
+        }
+        
+        // Add new subject
+        function addSubject() {
+            const subjectName = subjectInput.value.trim();
+            
+            if (subjectName) {
+                state.subjects.push({
+                    name: subjectName,
+                    time: 0
+                });
+                
+                subjectInput.value = '';
+                updateSubjectsList();
+                updateStatistics();
+                saveToLocalStorage();
+            }
+        }
+        
+        // Show edit modal
+        function showEditModal(id) {
+            const subject = state.subjects[id];
+            editSubjectName.value = subject.name;
+            
+            // Convert seconds to minutes for editing
+            editSubjectTime.value = Math.floor(subject.time / 60);
+            
+            state.editingSubjectId = id;
+            editSubjectModal.style.display = 'flex';
+        }
+        
+        // Hide edit modal
+        function hideEditModal() {
+            editSubjectModal.style.display = 'none';
+        }
+        
+        // Save subject changes
+        function saveSubjectChanges() {
+            if (state.editingSubjectId !== null) {
+                state.subjects[state.editingSubjectId].name = editSubjectName.value;
+                
+                // Convert minutes to seconds
+                const minutes = parseInt(editSubjectTime.value) || 0;
+                state.subjects[state.editingSubjectId].time = minutes * 60;
+                
+                updateSubjectsList();
+                hideEditModal();
+                saveToLocalStorage();
+            }
+        }
+        
+        // Delete subject
+        function deleteSubject(id) {
+            state.subjects.splice(id, 1);
+            updateSubjectsList();
+            updateStatistics();
+            saveToLocalStorage();
+        }
+        
+        // Add new task
+        function addTask() {
+            const taskText = taskInput.value.trim();
+            
+            if (taskText) {
+                state.tasks.push({
+                    text: taskText,
+                    completed: false
+                });
+                
+                taskInput.value = '';
+                updateTasksList();
+                updateStatistics();
+                saveToLocalStorage();
+            }
+        }
+        
+        // Toggle task completion
+        function toggleTaskCompletion(id) {
+            state.tasks[id].completed = !state.tasks[id].completed;
+            updateTasksList();
+            updateStatistics();
+            saveToLocalStorage();
+        }
+        
+        // Delete task
+        function deleteTask(id) {
+            state.tasks.splice(id, 1);
+            updateTasksList();
+            updateStatistics();
+            saveToLocalStorage();
+        }
+        
+        // Set preset time
+        function setPresetTime(seconds) {
+            if (state.timer.mode !== 'stopwatch') {
+                state.timer.timeLeft = seconds;
+                state.timer.originalTime = seconds;
+                updateTimerDisplay();
+                
+                // Switch to custom mode if not already
+                if (state.timer.mode !== 'custom') {
+                    switchMode('custom');
+                }
+                
+                saveToLocalStorage();
+            }
+        }
+        
+        // Initialize the application
+        initApp();
+    </script>
+</body>
+</html>
