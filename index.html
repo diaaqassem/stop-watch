@@ -576,10 +576,6 @@
             color: var(--light);
             font-size: 0.9rem;
         }
-
-        .fa-github:before .fa-linkedin:before {
-            color: #e680ef !important;
-        }
         
         /* Mobile-specific styles */
         @media (max-width: 480px) {
@@ -667,6 +663,11 @@
             border-radius: 50%;
             border-top-color: #fff;
             animation: spin 1s ease-in-out infinite;
+        }
+
+        .fa-github:before,
+        .fa-linkedin:before {
+            color: #e680ef !important;
         }
 
         @keyframes spin {
@@ -1992,5 +1993,6 @@
     </script>
 </body>
 </html>
+
 
 
