@@ -950,13 +950,15 @@
                 mode: 'pomodoro',
                 stopwatchStartTime: 0,
                 stopwatchElapsed: 0,
-                interval: null
+                interval: null,
+                lastUpdated: Date.now() // Add timestamp for tracking
             },
             breakTimer: {
                 timeLeft: 5 * 60,
                 isRunning: false,
                 mode: 'short',
-                interval: null
+                interval: null,
+                lastUpdated: Date.now() // Add timestamp for tracking
             },
             subjects: [],
             tasks: [],
@@ -992,6 +994,9 @@
                 if (window.AudioContext || window.webkitAudioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
+                
+                // Check if we need to update timers based on time passed
+                updateTimersAfterBackground();
             } catch (error) {
                 showNotification('Error initializing application: ' + error.message, 'error');
                 console.error('Initialization error:', error);
@@ -1100,6 +1105,58 @@
             }
         }
         
+        // Update timers after returning from background
+        function updateTimersAfterBackground() {
+            const now = Date.now();
+            
+            // Update study timer if it was running
+            if (state.timer.isRunning) {
+                if (state.timer.mode === 'stopwatch') {
+                    const timePassed = now - state.timer.lastUpdated;
+                    state.timer.stopwatchElapsed += timePassed;
+                } else {
+                    const timePassed = Math.floor((now - state.timer.lastUpdated) / 1000);
+                    state.timer.timeLeft = Math.max(0, state.timer.timeLeft - timePassed);
+                    
+                    if (state.timer.timeLeft === 0) {
+                        state.timer.isRunning = false;
+                        state.statistics.sessionsCompleted++;
+                        
+                        // Play sound notification
+                        playNotification("Study session completed! Time for a break.");
+                        
+                        // Add to today's study time
+                        const sessionTime = state.timer.mode === 'pomodoro' ? 25 * 60 : 
+                                          (state.timer.originalTime || 25 * 60);
+                        state.statistics.todayStudyTime += sessionTime;
+                        
+                        updateStatistics();
+                    }
+                }
+                state.timer.lastUpdated = now;
+            }
+            
+            // Update break timer if it was running
+            if (state.breakTimer.isRunning) {
+                const timePassed = Math.floor((now - state.breakTimer.lastUpdated) / 1000);
+                state.breakTimer.timeLeft = Math.max(0, state.breakTimer.timeLeft - timePassed);
+                
+                if (state.breakTimer.timeLeft === 0) {
+                    state.breakTimer.isRunning = false;
+                    state.statistics.breaksCompleted++;
+                    
+                    // Play sound notification
+                    playNotification("Break time is over! Time to get back to study.");
+                    
+                    updateStatistics();
+                }
+                state.breakTimer.lastUpdated = now;
+            }
+            
+            updateUI();
+            saveToLocalStorage();
+        }
+        
         // Set up event listeners
         function setupEventListeners() {
             startBtn.addEventListener('click', startTimer);
@@ -1160,6 +1217,97 @@
             stopAlarmBtn.addEventListener('click', stopAlarm);
         }
 
+        // Handle page visibility change
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                // Page is hidden, update last updated time
+                if (state.timer.isRunning) {
+                    state.timer.lastUpdated = Date.now();
+                }
+                if (state.breakTimer.isRunning) {
+                    state.breakTimer.lastUpdated = Date.now();
+                }
+                saveToLocalStorage();
+            } else {
+                // Page is visible again, update timers
+                updateTimersAfterBackground();
+                
+                // Restart intervals if needed
+                if (state.timer.isRunning) {
+                    startTimerInterval();
+                }
+                if (state.breakTimer.isRunning) {
+                    startBreakTimerInterval();
+                }
+            }
+        }
+
+        // Start timer interval
+        function startTimerInterval() {
+            if (state.timer.interval) {
+                clearInterval(state.timer.interval);
+            }
+            
+            if (state.timer.mode === 'stopwatch') {
+                state.timer.interval = setInterval(() => {
+                    state.timer.stopwatchElapsed = Date.now() - state.timer.stopwatchStartTime;
+                    updateTimerDisplay();
+                    saveToLocalStorage();
+                }, 100);
+            } else {
+                state.timer.interval = setInterval(() => {
+                    state.timer.timeLeft--;
+                    updateTimerDisplay();
+                    
+                    if (state.timer.timeLeft === 0) {
+                        clearInterval(state.timer.interval);
+                        state.timer.isRunning = false;
+                        state.statistics.sessionsCompleted++;
+                        
+                        // Play sound notification
+                        playNotification("Study session completed! Time for a break.");
+                        
+                        // Add to today's study time
+                        const sessionTime = state.timer.mode === 'pomodoro' ? 25 * 60 : 
+                                          (state.timer.originalTime || 25 * 60);
+                        state.statistics.todayStudyTime += sessionTime;
+                        
+                        updateStatistics();
+                        updateButtonStates();
+                    }
+                    
+                    saveToLocalStorage();
+                }, 1000);
+            }
+        }
+
+        // Start break timer interval
+        function startBreakTimerInterval() {
+            if (state.breakTimer.interval) {
+                clearInterval(state.breakTimer.interval);
+            }
+            
+            state.breakTimer.interval = setInterval(() => {
+                state.breakTimer.timeLeft--;
+                updateBreakTimerDisplay();
+                
+                if (state.breakTimer.timeLeft === 0) {
+                    clearInterval(state.breakTimer.interval);
+                    state.breakTimer.isRunning = false;
+                    state.statistics.breaksCompleted++;
+                    
+                    // Play sound notification
+                    playNotification("Break time is over! Time to get back to study.");
+                    
+                    updateStatistics();
+                    updateButtonStates();
+                    saveToLocalStorage();
+                }
+                
+                saveToLocalStorage();
+            }, 1000);
+        }
+
         // Stop alarm function
         function stopAlarm() {
             if (currentAudio) {
@@ -1183,19 +1331,6 @@
             alarmSettings.classList.remove('alarm-playing');
             
             showNotification('Alarm stopped');
-        }
-
-        // Handle page visibility change
-        function handleVisibilityChange() {
-            if (document.hidden) {
-                // Page is hidden, pause timers
-                if (state.timer.isRunning) {
-                    pauseTimer();
-                }
-                if (state.breakTimer.isRunning) {
-                    pauseTimer();
-                }
-            }
         }
 
         // Clean up before unloading the page
@@ -1418,54 +1553,27 @@
             if (state.breakTimer.isRunning) {
                 clearInterval(state.breakTimer.interval);
                 state.breakTimer.isRunning = false;
+                updateButtonStates();
             }
             
             if (!state.timer.isRunning && state.timer.mode !== 'stopwatch' && state.timer.timeLeft > 0) {
                 state.timer.isRunning = true;
+                state.timer.lastUpdated = Date.now();
                 state.activeTimer = 'study';
                 updateActiveTimerDisplay();
                 updateButtonStates();
                 
-                state.timer.interval = setInterval(() => {
-                    state.timer.timeLeft--;
-                    updateTimerDisplay();
-                    
-                    if (state.timer.timeLeft === 0) {
-                        clearInterval(state.timer.interval);
-                        state.timer.isRunning = false;
-                        state.statistics.sessionsCompleted++;
-                        
-                        // Play sound notification
-                        playNotification("Study session completed! Time for a break.");
-                        
-                        // Add to today's study time
-                        const sessionTime = state.timer.mode === 'pomodoro' ? 25 * 60 : 
-                                          (state.timer.originalTime || 25 * 60);
-                        state.statistics.todayStudyTime += sessionTime;
-                        
-                        updateStatistics();
-                        updateButtonStates();
-                        saveToLocalStorage();
-                    }
-                    
-                    saveToLocalStorage();
-                }, 1000);
-                
+                startTimerInterval();
                 saveToLocalStorage();
             } else if (state.timer.mode === 'stopwatch' && !state.timer.isRunning) {
                 state.timer.isRunning = true;
+                state.timer.stopwatchStartTime = Date.now() - state.timer.stopwatchElapsed;
+                state.timer.lastUpdated = Date.now();
                 state.activeTimer = 'study';
                 updateActiveTimerDisplay();
                 updateButtonStates();
                 
-                state.timer.stopwatchStartTime = Date.now() - state.timer.stopwatchElapsed;
-                
-                state.timer.interval = setInterval(() => {
-                    state.timer.stopwatchElapsed = Date.now() - state.timer.stopwatchStartTime;
-                    updateTimerDisplay();
-                    saveToLocalStorage();
-                }, 100);
-                
+                startTimerInterval();
                 saveToLocalStorage();
             }
         }
@@ -1481,30 +1589,12 @@
             
             if (!state.breakTimer.isRunning && state.breakTimer.timeLeft > 0) {
                 state.breakTimer.isRunning = true;
+                state.breakTimer.lastUpdated = Date.now();
                 state.activeTimer = 'break';
                 updateActiveTimerDisplay();
                 updateButtonStates();
                 
-                state.breakTimer.interval = setInterval(() => {
-                    state.breakTimer.timeLeft--;
-                    updateBreakTimerDisplay();
-                    
-                    if (state.breakTimer.timeLeft === 0) {
-                        clearInterval(state.breakTimer.interval);
-                        state.breakTimer.isRunning = false;
-                        state.statistics.breaksCompleted++;
-                        
-                        // Play sound notification
-                        playNotification("Break time is over! Time to get back to study.");
-                        
-                        updateStatistics();
-                        updateButtonStates();
-                        saveToLocalStorage();
-                    }
-                    
-                    saveToLocalStorage();
-                }, 1000);
-                
+                startBreakTimerInterval();
                 saveToLocalStorage();
             }
         }
@@ -1898,4 +1988,3 @@
     </script>
 </body>
 </html>
-
