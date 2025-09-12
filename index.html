@@ -427,6 +427,7 @@
         
         .highlight {
             color: #e680ef;
+            font-weight: bold
         }
         
         .modal {
@@ -665,13 +666,25 @@
             animation: spin 1s ease-in-out infinite;
         }
 
-/*         .fa-github:before,
-        .fa-linkedin:before {
-            color: #e680ef !important;
-        } */
-
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+        
+        /* New styles for improved UI */
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+        
+        .time-input:focus, .subject-input:focus, .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: var(--secondary);
         }
     </style>
 </head>
@@ -715,13 +728,13 @@
                         <button class="btn btn-start" id="startBtn">
                             <i class="fas fa-play"></i> Start
                         </button>
-                        <button class="btn btn-pause" id="pauseBtn">
+                        <button class="btn btn-pause" id="pauseBtn" disabled>
                             <i class="fas fa-pause"></i> Pause
                         </button>
                         <button class="btn btn-reset" id="resetBtn">
                             <i class="fas fa-redo"></i> Reset
                         </button>
-                        <button class="btn btn-stop" id="stopBreakBtn">
+                        <button class="btn btn-stop" id="stopBreakBtn" disabled>
                             <i class="fas fa-stop"></i> Stop Break
                         </button>
                     </div>
@@ -739,7 +752,7 @@
                         <input type="number" id="minutesInput" class="time-input" placeholder="Min" min="0" max="99">
                         <span>:</span>
                         <input type="number" id="secondsInput" class="time-input" placeholder="Sec" min="0" max="59">
-                        <button class="btn btn-action" id="setTimeBtn">
+                        <button class="btn btn-action btn-small" id="setTimeBtn">
                             <i class="fas fa-check"></i> Set
                         </button>
                     </div>
@@ -750,9 +763,9 @@
                         </button>
                         <label class="alarm-label" for="alarmSelect">Alarm Sound:</label>
                         <select id="alarmSelect" class="alarm-select">
-                            <option value="alarm1.mp3">Classic Alarm</option>
-                            <option value="alarm2.mp3">Digital Beep</option>
-                            <option value="alarm3.mp3">Bell Ring</option>
+                            <option value="alarm1">Classic Alarm</option>
+                            <option value="alarm2">Digital Beep</option>
+                            <option value="alarm3">Bell Ring</option>
                         </select>
                     </div>
                     
@@ -777,7 +790,7 @@
                             <button class="btn btn-break" id="startBreakBtn">
                                 <i class="fas fa-play"></i> Start Break
                             </button>
-                            <button class="btn btn-action" id="setBreakBtn">
+                            <button class="btn btn-action btn-small" id="setBreakBtn">
                                 <i class="fas fa-cog"></i> Set Break
                             </button>
                         </div>
@@ -886,7 +899,7 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="editSubjectTime">Study Time (minutes)</label>
-                    <input type="number" id="editSubjectTime" class="form-input" placeholder="Study time">
+                    <input type="number" id="editSubjectTime" class="form-input" placeholder="Study time" min="0">
                 </div>
                 <div class="form-actions">
                     <button class="btn btn-reset" id="cancelEdit">Cancel</button>
@@ -940,11 +953,11 @@
         const stopAlarmBtn = document.getElementById('stopAlarmBtn');
         const alarmSettings = document.getElementById('alarmSettings');
         
-        // Alarm sounds (stored in variable for easy modification)
+        // Alarm sounds (using free online alarm sounds)
         const alarmSounds = {
-            'alarm1.mp3': 'https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3',
-            'alarm2.mp3': 'https://assets.mixkit.co/sfx/preview/mixkit-classic-alarm-995.mp3',
-            'alarm3.mp3': './alarm1.mp3'
+            'alarm1': 'https://assets.mixkit.co/sfx/preview/mixkit-bell-notification-933.mp3',
+            'alarm2': 'https://assets.mixkit.co/sfx/preview/mixkit-classic-alarm-995.mp3',
+            'alarm3': './alarm1.mp3'
         };
         
         // Application state
@@ -956,14 +969,14 @@
                 stopwatchStartTime: 0,
                 stopwatchElapsed: 0,
                 interval: null,
-                lastUpdated: Date.now() // Add timestamp for tracking
+                lastUpdated: Date.now()
             },
             breakTimer: {
                 timeLeft: 5 * 60,
                 isRunning: false,
                 mode: 'short',
                 interval: null,
-                lastUpdated: Date.now() // Add timestamp for tracking
+                lastUpdated: Date.now()
             },
             subjects: [],
             tasks: [],
@@ -977,7 +990,7 @@
             },
             editingSubjectId: null,
             activeTimer: 'study',
-            alarmSound: 'alarm1.mp3'
+            alarmSound: 'alarm1'
         };
 
         // Audio context for better sound handling
@@ -1063,12 +1076,14 @@
                         timer: {
                             ...state.timer,
                             ...(parsedState.timer || {}),
-                            interval: null
+                            interval: null,
+                            isRunning: false // Always reset running state on load
                         },
                         breakTimer: {
                             ...state.breakTimer,
                             ...(parsedState.breakTimer || {}),
-                            interval: null
+                            interval: null,
+                            isRunning: false // Always reset running state on load
                         }
                     };
                     
@@ -1253,36 +1268,47 @@
                 clearInterval(state.timer.interval);
             }
             
+            state.timer.lastUpdated = Date.now();
+            
             if (state.timer.mode === 'stopwatch') {
                 state.timer.interval = setInterval(() => {
-                    state.timer.stopwatchElapsed = Date.now() - state.timer.stopwatchStartTime;
+                    const now = Date.now();
+                    state.timer.stopwatchElapsed = now - state.timer.stopwatchStartTime;
                     updateTimerDisplay();
+                    state.timer.lastUpdated = now;
                     saveToLocalStorage();
                 }, 100);
             } else {
                 state.timer.interval = setInterval(() => {
-                    state.timer.timeLeft--;
-                    updateTimerDisplay();
+                    const now = Date.now();
+                    const timePassed = Math.floor((now - state.timer.lastUpdated) / 1000);
                     
-                    if (state.timer.timeLeft === 0) {
-                        clearInterval(state.timer.interval);
-                        state.timer.isRunning = false;
-                        state.statistics.sessionsCompleted++;
+                    if (timePassed >= 1) {
+                        state.timer.timeLeft = Math.max(0, state.timer.timeLeft - timePassed);
+                        state.timer.lastUpdated = now;
                         
-                        // Play sound notification
-                        playNotification("Study session completed! Time for a break.");
+                        updateTimerDisplay();
                         
-                        // Add to today's study time
-                        const sessionTime = state.timer.mode === 'pomodoro' ? 25 * 60 : 
-                                          (state.timer.originalTime || 25 * 60);
-                        state.statistics.todayStudyTime += sessionTime;
+                        if (state.timer.timeLeft === 0) {
+                            clearInterval(state.timer.interval);
+                            state.timer.isRunning = false;
+                            state.statistics.sessionsCompleted++;
+                            
+                            // Play sound notification
+                            playNotification("Study session completed! Time for a break.");
+                            
+                            // Add to today's study time
+                            const sessionTime = state.timer.mode === 'pomodoro' ? 25 * 60 : 
+                                              (state.timer.originalTime || 25 * 60);
+                            state.statistics.todayStudyTime += sessionTime;
+                            
+                            updateStatistics();
+                            updateButtonStates();
+                        }
                         
-                        updateStatistics();
-                        updateButtonStates();
+                        saveToLocalStorage();
                     }
-                    
-                    saveToLocalStorage();
-                }, 1000);
+                }, 200); // Check more frequently for better accuracy
             }
         }
 
@@ -1292,25 +1318,34 @@
                 clearInterval(state.breakTimer.interval);
             }
             
+            state.breakTimer.lastUpdated = Date.now();
+            
             state.breakTimer.interval = setInterval(() => {
-                state.breakTimer.timeLeft--;
-                updateBreakTimerDisplay();
+                const now = Date.now();
+                const timePassed = Math.floor((now - state.breakTimer.lastUpdated) / 1000);
                 
-                if (state.breakTimer.timeLeft === 0) {
-                    clearInterval(state.breakTimer.interval);
-                    state.breakTimer.isRunning = false;
-                    state.statistics.breaksCompleted++;
+                if (timePassed >= 1) {
+                    state.breakTimer.timeLeft = Math.max(0, state.breakTimer.timeLeft - timePassed);
+                    state.breakTimer.lastUpdated = now;
                     
-                    // Play sound notification
-                    playNotification("Break time is over! Time to get back to study.");
+                    updateBreakTimerDisplay();
                     
-                    updateStatistics();
-                    updateButtonStates();
+                    if (state.breakTimer.timeLeft === 0) {
+                        clearInterval(state.breakTimer.interval);
+                        state.breakTimer.isRunning = false;
+                        state.statistics.breaksCompleted++;
+                        
+                        // Play sound notification
+                        playNotification("Break time is over! Time to get back to study.");
+                        
+                        updateStatistics();
+                        updateButtonStates();
+                        saveToLocalStorage();
+                    }
+                    
                     saveToLocalStorage();
                 }
-                
-                saveToLocalStorage();
-            }, 1000);
+            }, 200); // Check more frequently for better accuracy
         }
 
         // Stop alarm function
@@ -1380,6 +1415,15 @@
 
             // Update break timer buttons
             startBreakBtn.disabled = state.breakTimer.isRunning || state.breakTimer.timeLeft === 0;
+            stopBreakBtn.disabled = !state.breakTimer.isRunning;
+            
+            // Update mode buttons
+            pomodoroBtn.classList.toggle('active', state.timer.mode === 'pomodoro');
+            stopwatchBtn.classList.toggle('active', state.timer.mode === 'stopwatch');
+            customBtn.classList.toggle('active', state.timer.mode === 'custom');
+            
+            shortBreakBtn.classList.toggle('active', state.breakTimer.mode === 'short');
+            longBreakBtn.classList.toggle('active', state.breakTimer.mode === 'long');
         }
         
         // Update timer display
@@ -1433,7 +1477,7 @@
             subjectsList.innerHTML = '';
             
             if (!state.subjects || state.subjects.length === 0) {
-                subjectsList.innerHTML = '<div class="subject-item"><div class="subject-name">No subjects added yet</div></div>';
+                subjectsList.innerHTML = '<div class="empty-state">No subjects added yet</div>';
                 return;
             }
             
@@ -1490,7 +1534,7 @@
             tasksList.innerHTML = '';
             
             if (!state.tasks || state.tasks.length === 0) {
-                tasksList.innerHTML = '<div class="task-item"><div class="task-text">No tasks added yet</div></div>';
+                tasksList.innerHTML = '<div class="empty-state">No tasks added yet</div>';
                 return;
             }
             
@@ -1561,25 +1605,29 @@
                 updateButtonStates();
             }
             
-            if (!state.timer.isRunning && state.timer.mode !== 'stopwatch' && state.timer.timeLeft > 0) {
-                state.timer.isRunning = true;
-                state.timer.lastUpdated = Date.now();
-                state.activeTimer = 'study';
-                updateActiveTimerDisplay();
-                updateButtonStates();
-                
-                startTimerInterval();
-                saveToLocalStorage();
-            } else if (state.timer.mode === 'stopwatch' && !state.timer.isRunning) {
-                state.timer.isRunning = true;
-                state.timer.stopwatchStartTime = Date.now() - state.timer.stopwatchElapsed;
-                state.timer.lastUpdated = Date.now();
-                state.activeTimer = 'study';
-                updateActiveTimerDisplay();
-                updateButtonStates();
-                
-                startTimerInterval();
-                saveToLocalStorage();
+            if (state.timer.mode === 'stopwatch') {
+                if (!state.timer.isRunning) {
+                    state.timer.isRunning = true;
+                    state.timer.stopwatchStartTime = Date.now() - state.timer.stopwatchElapsed;
+                    state.timer.lastUpdated = Date.now();
+                    state.activeTimer = 'study';
+                    updateActiveTimerDisplay();
+                    updateButtonStates();
+                    
+                    startTimerInterval();
+                    saveToLocalStorage();
+                }
+            } else {
+                if (!state.timer.isRunning && state.timer.timeLeft > 0) {
+                    state.timer.isRunning = true;
+                    state.timer.lastUpdated = Date.now();
+                    state.activeTimer = 'study';
+                    updateActiveTimerDisplay();
+                    updateButtonStates();
+                    
+                    startTimerInterval();
+                    saveToLocalStorage();
+                }
             }
         }
         
@@ -1679,10 +1727,22 @@
                 return;
             }
             
+            if (minutes === 0 && seconds === 0) {
+                showNotification('Time cannot be zero', 'error');
+                return;
+            }
+            
             state.timer.timeLeft = minutes * 60 + seconds;
             state.timer.originalTime = state.timer.timeLeft; // Store for statistics
             updateTimerDisplay();
+            
+            // Switch to custom mode if not already
+            if (state.timer.mode !== 'custom') {
+                switchMode('custom');
+            }
+            
             saveToLocalStorage();
+            showNotification('Custom time set successfully');
         }
         
         // Set custom time for break timer
@@ -1697,6 +1757,7 @@
                 state.breakTimer.timeLeft = min * 60;
                 updateBreakTimerDisplay();
                 saveToLocalStorage();
+                showNotification('Break time set successfully');
             }
         }
         
@@ -1709,31 +1770,39 @@
                 // Play the selected alarm sound
                 currentAudio = new Audio(alarmSounds[state.alarmSound]);
                 currentAudio.loop = true;
+                
+                // Set volume to a reasonable level
+                currentAudio.volume = 0.7;
+                
                 currentAudio.play().catch(e => {
                     console.log("Audio play failed:", e);
                     // Fallback to browser beep
                     if (audioContext) {
-                        currentOscillator = audioContext.createOscillator();
-                        currentOscillator.type = 'sine';
-                        currentOscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-                        
-                        const gainNode = audioContext.createGain();
-                        gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
-                        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
-                        
-                        currentOscillator.connect(gainNode);
-                        gainNode.connect(audioContext.destination);
-                        
-                        currentOscillator.start();
-                        
-                        // Stop after 3 seconds
-                        alarmTimeout = setTimeout(() => {
-                            if (currentOscillator) {
-                                currentOscillator.stop();
-                                currentOscillator = null;
-                                alarmSettings.classList.remove('alarm-playing');
-                            }
-                        }, 3000);
+                        try {
+                            currentOscillator = audioContext.createOscillator();
+                            currentOscillator.type = 'sine';
+                            currentOscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+                            
+                            const gainNode = audioContext.createGain();
+                            gainNode.gain.setValueAtTime(0.5, audioContext.currentTime);
+                            gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+                            
+                            currentOscillator.connect(gainNode);
+                            gainNode.connect(audioContext.destination);
+                            
+                            currentOscillator.start();
+                            
+                            // Stop after 3 seconds
+                            alarmTimeout = setTimeout(() => {
+                                if (currentOscillator) {
+                                    currentOscillator.stop();
+                                    currentOscillator = null;
+                                    alarmSettings.classList.remove('alarm-playing');
+                                }
+                            }, 3000);
+                        } catch (error) {
+                            console.error("Error creating audio fallback:", error);
+                        }
                     }
                 });
                 
@@ -1855,6 +1924,11 @@
         // Show edit modal
         function showEditModal(id) {
             const subject = state.subjects[id];
+            if (!subject) {
+                showNotification('Subject not found', 'error');
+                return;
+            }
+            
             editSubjectName.value = subject.name;
             
             // Convert seconds to minutes for editing
@@ -1867,16 +1941,35 @@
         // Hide edit modal
         function hideEditModal() {
             editSubjectModal.style.display = 'none';
+            state.editingSubjectId = null;
         }
         
         // Save subject changes
         function saveSubjectChanges() {
             if (state.editingSubjectId !== null) {
-                state.subjects[state.editingSubjectId].name = editSubjectName.value;
+                const subject = state.subjects[state.editingSubjectId];
+                if (!subject) {
+                    showNotification('Subject not found', 'error');
+                    hideEditModal();
+                    return;
+                }
+                
+                const newName = editSubjectName.value.trim();
+                if (!newName) {
+                    showNotification('Subject name cannot be empty', 'error');
+                    return;
+                }
+                
+                subject.name = newName;
                 
                 // Convert minutes to seconds
                 const minutes = parseInt(editSubjectTime.value) || 0;
-                state.subjects[state.editingSubjectId].time = minutes * 60;
+                if (minutes < 0) {
+                    showNotification('Time cannot be negative', 'error');
+                    return;
+                }
+                
+                subject.time = minutes * 60;
                 
                 updateSubjectsList();
                 hideEditModal();
@@ -1887,7 +1980,7 @@
         
         // Delete subject
         function deleteSubject(id) {
-            if (confirm('Are you sure you want to delete this subject?')) {
+            if (state.subjects[id] && confirm('Are you sure you want to delete this subject?')) {
                 state.subjects.splice(id, 1);
                 updateSubjectsList();
                 updateStatistics();
@@ -1923,15 +2016,17 @@
         
         // Toggle task completion
         function toggleTaskCompletion(id) {
-            state.tasks[id].completed = !state.tasks[id].completed;
-            updateTasksList();
-            updateStatistics();
-            saveToLocalStorage();
+            if (state.tasks[id]) {
+                state.tasks[id].completed = !state.tasks[id].completed;
+                updateTasksList();
+                updateStatistics();
+                saveToLocalStorage();
+            }
         }
         
         // Delete task
         function deleteTask(id) {
-            if (confirm('Are you sure you want to delete this task?')) {
+            if (state.tasks[id] && confirm('Are you sure you want to delete this task?')) {
                 state.tasks.splice(id, 1);
                 updateTasksList();
                 updateStatistics();
@@ -1953,6 +2048,7 @@
                 }
                 
                 saveToLocalStorage();
+                showNotification('Preset time set successfully');
             }
         }
         
@@ -1961,13 +2057,14 @@
             state.breakTimer.timeLeft = seconds;
             updateBreakTimerDisplay();
             saveToLocalStorage();
+            showNotification('Break time set successfully');
         }
         
         // Initialize the application
         initApp();
         
         // Request notification permission on load
-        if ("Notification" in window) {
+        if ("Notification" in window && Notification.permission === "default") {
             Notification.requestPermission();
         }
         
@@ -1993,8 +2090,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
